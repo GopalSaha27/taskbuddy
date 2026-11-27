@@ -17,10 +17,12 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Future<UserEntity> registerWithEmail({
+    required String displayName,
     required String email,
     required String password,
   }) async {
     return await _remoteDataSource.registerWithEmail(
+      displayName: displayName,
       email: email,
       password: password,
     );

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import 'login_screen.dart';
+import 'register_screen.dart';
 
 class WelcomeScreen extends StatelessWidget {
   const WelcomeScreen({super.key});
@@ -82,12 +83,17 @@ class WelcomeScreen extends StatelessWidget {
 
               const SizedBox(height: 14),
 
-              // Registration navigation will be added later.
+              // Navigates to the Registration Screen.
               SizedBox(
                 width: double.infinity,
                 child: OutlinedButton(
                   onPressed: () {
-                    // Registration navigation will be added later.
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const RegisterScreen(),
+                      ),
+                    );
                   },
                   child: const Text('Create Account'),
                 ),

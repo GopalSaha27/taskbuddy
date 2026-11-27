@@ -19,6 +19,9 @@ class AuthProvider extends ChangeNotifier {
   // Tracks whether an authentication request is running.
   bool _isLoading = false;
 
+  // Tracks whether Firebase's initial auth state is being checked.
+  bool _isInitializing = true;
+
   // Stores authentication error messages.
   String? _errorMessage;
 
@@ -33,6 +36,9 @@ class AuthProvider extends ChangeNotifier {
   // Provides the current loading state.
   bool get isLoading => _isLoading;
 
+  // Provides the initial authentication checking state.
+  bool get isInitializing => _isInitializing;
+
   // Provides the current error message.
   String? get errorMessage => _errorMessage;
 
@@ -44,10 +50,12 @@ class AuthProvider extends ChangeNotifier {
     _authSubscription = _authRepository.authStateChanges().listen(
       (user) {
         _currentUser = user;
+        _isInitializing = false;
         notifyListeners();
       },
       onError: (error) {
         _errorMessage = error.toString();
+        _isInitializing = false;
         notifyListeners();
       },
     );
@@ -64,8 +72,9 @@ class AuthProvider extends ChangeNotifier {
     _errorMessage = null;
   }
 
-  // Registers a new user with email and password.
+  // Registers a new user with name, email and password.
   Future<void> registerWithEmail({
+    required String displayName,
     required String email,
     required String password,
   }) async {
@@ -74,6 +83,7 @@ class AuthProvider extends ChangeNotifier {
 
     try {
       _currentUser = await _authRepository.registerWithEmail(
+        displayName: displayName,
         email: email,
         password: password,
       );
@@ -133,7 +143,7 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  // Cancels the authentication subscription when the provider is disposed.
+  // Cancels the authentication subscription when disposed.
   @override
   void dispose() {
     _authSubscription?.cancel();

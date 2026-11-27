@@ -1,3 +1,4 @@
+
 import 'package:firebase_auth/firebase_auth.dart';
 
 import '../models/user_model.dart';
@@ -31,18 +32,33 @@ class AuthRemoteDataSource {
     });
   }
 
-  // Registers a new user using email and password.
+  // Registers a new user using name, email and password.
   Future<UserModel> registerWithEmail({
+    required String displayName,
     required String email,
     required String password,
   }) async {
+    // Creates a new Firebase Authentication account.
     final credential =
         await _firebaseAuth.createUserWithEmailAndPassword(
       email: email,
       password: password,
     );
 
-    return _mapFirebaseUser(credential.user!);
+    // Gets the newly created Firebase user.
+    final user = credential.user!;
+
+    // Saves the user's display name in Firebase.
+    await user.updateDisplayName(displayName.trim());
+
+    // Reloads the user to get the updated profile information.
+    await user.reload();
+
+    // Gets the refreshed Firebase user.
+    final updatedUser = _firebaseAuth.currentUser!;
+
+    // Converts Firebase User into our UserModel.
+    return _mapFirebaseUser(updatedUser);
   }
 
   // Signs in an existing user using email and password.

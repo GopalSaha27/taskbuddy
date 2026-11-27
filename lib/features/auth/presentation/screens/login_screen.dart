@@ -1,6 +1,10 @@
+
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../providers/auth_provider.dart';
+import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -13,10 +17,8 @@ class _LoginScreenState extends State<LoginScreen> {
   // Manages the login form.
   final _formKey = GlobalKey<FormState>();
 
-  // Reads the email input.
+  // Reads the email and password inputs.
   final _emailController = TextEditingController();
-
-  // Reads the password input.
   final _passwordController = TextEditingController();
 
   // Controls password visibility.
@@ -29,20 +31,81 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  // Validates the form before login.
-  void _handleLogin() {
-    if (_formKey.currentState!.validate()) {
-      // Firebase login will be connected in the next step.
+  // Converts Firebase errors into readable messages.
+  String _getFriendlyErrorMessage(String error) {
+    if (error.contains('user-not-found') ||
+        error.contains('invalid-credential')) {
+      return 'Invalid email or password.';
+    }
+
+    if (error.contains('wrong-password')) {
+      return 'Incorrect password. Please try again.';
+    }
+
+    if (error.contains('invalid-email')) {
+      return 'Please enter a valid email address.';
+    }
+
+    if (error.contains('user-disabled')) {
+      return 'This account has been disabled.';
+    }
+
+    if (error.contains('network-request-failed')) {
+      return 'Network error. Check your internet connection.';
+    }
+
+    if (error.contains('too-many-requests')) {
+      return 'Too many attempts. Please try again later.';
+    }
+
+    return 'Login failed. Please try again.';
+  }
+
+  // Authenticates the user with Firebase.
+  Future<void> _handleLogin() async {
+    // Stop if form validation fails.
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
+    final authProvider = context.read<AuthProvider>();
+
+    // Call login method from AuthProvider.
+    await authProvider.signInWithEmail(
+      email: _emailController.text.trim(),
+      password: _passwordController.text,
+    );
+
+    if (!mounted) return;
+
+    // Display error if authentication fails.
+    if (authProvider.errorMessage != null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Form validation successful!'),
+        SnackBar(
+          content: Text(
+            _getFriendlyErrorMessage(authProvider.errorMessage!),
+          ),
+          backgroundColor: AppColors.error,
         ),
       );
+
+      return;
     }
+
+    // Login successful.
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Login successful!'),
+        backgroundColor: AppColors.success,
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    // Listen to loading state changes.
+    final isLoading = context.watch<AuthProvider>().isLoading;
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
@@ -137,8 +200,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     suffixIcon: IconButton(
                       onPressed: () {
                         setState(() {
-                          _isPasswordVisible =
-                              !_isPasswordVisible;
+                          _isPasswordVisible = !_isPasswordVisible;
                         });
                       },
                       icon: Icon(
@@ -167,9 +229,11 @@ class _LoginScreenState extends State<LoginScreen> {
                 Align(
                   alignment: Alignment.centerRight,
                   child: TextButton(
-                    onPressed: () {
-                      // Password reset will be implemented later.
-                    },
+                    onPressed: isLoading
+                        ? null
+                        : () {
+                            // Password reset will be implemented later.
+                          },
                     child: const Text(
                       'Forgot Password?',
                       style: TextStyle(
@@ -187,25 +251,41 @@ class _LoginScreenState extends State<LoginScreen> {
                   width: double.infinity,
                   height: 52,
                   child: ElevatedButton(
-                    onPressed: _handleLogin,
-                    child: const Text(
-                      'Login',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
+                    onPressed: isLoading ? null : _handleLogin,
+                    child: isLoading
+                        ? const SizedBox(
+                            height: 24,
+                            width: 24,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2.5,
+                              color: AppColors.white,
+                            ),
+                          )
+                        : const Text(
+                            'Login',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
                   ),
                 ),
 
                 const SizedBox(height: 30),
 
-                // Registration navigation placeholder.
+                // Navigate to registration screen.
                 Center(
                   child: TextButton(
-                    onPressed: () {
-                      // Registration navigation will be added later.
-                    },
+                    onPressed: isLoading
+                        ? null
+                        : () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const RegisterScreen(),
+                              ),
+                            );
+                          },
                     child: const Text(
                       "Don't have an account? Create Account",
                       style: TextStyle(
